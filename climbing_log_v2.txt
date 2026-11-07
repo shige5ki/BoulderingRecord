@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#18231f">
+<title>Climbing Log v2</title>
+<style>
+:root{--bg:#f4f6f3;--card:#fff;--ink:#1d2924;--muted:#6b7771;--line:#e1e7e2;--accent:#236b50;--soft:#e8f2ec;--danger:#a33b35;--success:#2d8a64;--flash:#e69b00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#18231f;color:#fff;padding:22px 18px 18px;display:flex;justify-content:space-between;align-items:flex-end}
+header .sub{font-size:11px;letter-spacing:.16em;opacity:.7}header h1{font-size:24px;margin:5px 0 0}
+.user-select{background:#303d38;color:#fff;border:1px solid #4a5953;padding:6px 10px;border-radius:8px;font-size:13px;outline:none}
+main{max-width:760px;margin:auto;padding:16px 14px 90px}
+.tabs{display:flex;gap:7px;margin:0 0 16px;overflow:auto}.tab{border:1px solid var(--line);background:#fff;color:var(--muted);padding:10px 13px;border-radius:12px;font-weight:650;white-space:nowrap;cursor:pointer;flex:1;text-align:center}.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:13px;box-shadow:0 2px 8px #15251b08}
+h2{font-size:18px;margin:0 0 14px;display:flex;justify-content:space-between;align-items:center}
+.muted{color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:12px}.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;color:var(--muted);font-weight:650;margin-bottom:6px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;color:var(--ink);font:inherit;font-size:15px}
+textarea{min-height:70px;resize:vertical}
+button{font:inherit;cursor:pointer}.primary{border:0;border-radius:11px;background:var(--accent);color:#fff;padding:12px 15px;font-weight:700;width:100%}.secondary{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;color:var(--ink);font-weight:650}.small{padding:6px 10px;font-size:12px;width:auto}.danger{color:var(--danger);border-color:#efd8d5}.success{background:var(--success);color:#fff;border:0}.flash{background:var(--flash);color:#fff;border:0}
+.inline{display:flex;gap:8px;align-items:center}.inline>*{flex:1}
+.pill{font-size:11px;padding:4px 8px;border-radius:99px;background:var(--soft);color:var(--accent);font-weight:700}
+.pill.flash{background:#fff4e5;color:var(--flash)}.pill.send{background:#e8f4ef;color:var(--success)}.pill.fail{background:#f4e8e8;color:var(--danger)}
+.checkin-box{background:var(--soft);border:1px solid var(--accent);border-radius:12px;padding:16px;text-align:center;margin-bottom:16px}
+.checkin-time{font-size:24px;font-weight:700;color:var(--accent);margin:8px 0}
+/* History */
+.history-date{font-size:14px;font-weight:700;background:var(--bg);padding:10px 0 5px;position:sticky;top:0;border-bottom:2px solid var(--line);margin-top:10px;color:var(--muted)}
+.h-item{padding:12px 0;border-bottom:1px solid var(--line)}.h-item:last-child{border-bottom:0}
+/* Analytics */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}.stat{background:var(--soft);padding:14px 10px;border-radius:12px;text-align:center}.stat b{display:block;font-size:22px;color:var(--accent)}.stat span{font-size:12px;color:var(--muted)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px;margin-top:8px}
+.cal-head{font-weight:700;color:var(--muted);padding-bottom:4px}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#f9faf9;border:1px solid var(--line)}
+.cal-day.active{background:var(--accent);color:#fff;font-weight:700;box-shadow:0 2px 5px rgba(35,107,80,0.3)}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px}.bar-label{width:70px;text-align:right;white-space:nowrap}.bar-track{flex:1;background:var(--soft);height:10px;border-radius:99px;overflow:hidden}.bar-fill{background:var(--accent);height:100%;border-radius:99px}
+/* Modal */
+dialog{border:0;border-radius:16px;padding:20px;width:92%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,0.2)}dialog::backdrop{background:rgba(0,0,0,0.5)}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="sub">BOULDERING JOURNAL</div><h1>Climbing Log</h1></div>
+  <select id="userSelect" class="user-select"></select>
+</header>
+<main>
+<nav class="tabs">
+  <button class="tab active" data-tab="record">記録</button>
+  <button class="tab" data-tab="history">履歴</button>
+  <button class="tab" data-tab="analytics">分析</button>
+  <button class="tab" data-tab="settings">設定</button>
+</nav>
+
+<!-- 記録タブ -->
+<section id="record" class="panel active">
+  <!-- チェックイン -->
+  <div class="card" id="checkinCard">
+    <h2>ジムにチェックイン</h2>
+    <div class="field"><label>場所</label><select id="ciGym"></select></div>
+    <button class="primary" id="btnCheckin">現在時刻でチェックイン開始</button>
+    <div style="margin-top:12px;text-align:center"><button class="secondary small" onclick="document.getElementById('manualSessionCard').style.display='block';this.style.display='none'">過去のセッションを手動入力...</button></div>
+  </div>
+  
+  <div class="checkin-box" id="activeSessionBox" style="display:none">
+    <div class="muted">チェックイン中</div>
+    <div class="checkin-time" id="asGym">Gym Name</div>
+    <div class="muted" style="margin-bottom:12px"><span id="asStart">00:00</span> 〜 プレイ中</div>
+    <button class="primary danger" id="btnCheckout">現在時刻でチェックアウト</button>
+  </div>
+
+  <!-- 手動セッション記録（隠し） -->
+  <div class="card" id="manualSessionCard" style="display:none; border-color:var(--accent)">
+    <h2>セッション手動記録 <button class="secondary small" onclick="document.getElementById('manualSessionCard').style.display='none';document.querySelector('#checkinCard .secondary').style.display='inline-block'">閉じる</button></h2>
+    <div class="field"><label>場所</label><select id="mGym"></select></div>
+    <div class="grid">
+      <div class="field"><label>日付</label><input type="date" id="mDate"></div>
+      <div class="field"><label>開始</label><input type="time" id="mStart" value="13:00"></div>
+      <div class="field"><label>終了</label><input type="time" id="mEnd" value="15:00"></div>
+    </div>
+    <button class="primary small" id="btnSaveManualSession" style="margin-top:10px">セッションを保存</button>
+  </div>
+
+  <!-- 課題記録 (単体) -->
+  <div class="card" style="margin-top:20px">
+    <h2>課題の記録</h2>
+    <div class="grid">
+      <div class="field"><label>日付 (自動)</label><input type="date" id="tDate"></div>
+      <div class="field"><label>課題名・色</label><input id="tName" placeholder="例: 青 12番"></div>
+      <div class="field"><label>グレード</label><select id="tGrade"></select></div>
+      <div class="field"><label>壁の種類</label><select id="tWall">
+        <option>スラブ</option><option>垂壁</option><option>薄かぶり</option><option>強傾斜</option><option>ルーフ</option><option>その他</option>
+      </select></div>
+    </div>
+    <div class="field"><label>結果</label>
+      <select id="tResult">
+        <option value="flash">⚡ 1撃完登 (Flash)</option>
+        <option value="send" selected>○ 完登 (Send)</option>
+        <option value="fail">× 未完登 / トライ中</option>
+      </select>
+    </div>
+    <div class="field"><label>メモ</label><textarea id="tNote" placeholder="ムーブや反省点"></textarea></div>
+    <div class="inline" style="margin-top:12px">
+      <button class="primary" id="btnSaveTask">保存</button>
+      <button class="secondary" id="btnSaveCloneTask">保存＆複製</button>
+    </div>
+  </div>
+</section>
+
+<!-- 履歴タブ -->
+<section id="history" class="panel"><div id="historyList"></div></section>
+
+<!-- 分析タブ -->
+<section id="analytics" class="panel">
+  <div class="card">
+    <h2 id="calMonth">202X年 X月</h2>
+    <div class="cal-grid" id="calendar"></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="statHours">0</b><span>今月の時間 (h)</span></div>
+    <div class="stat"><b id="statMax">なし</b><span>最高完登グレード</span></div>
+    <div class="stat"><b id="statSend">0</b><span>今月の完登数</span></div>
+    <div class="stat"><b id="statRate">0%</b><span>全体の完登率</span></div>
+  </div>
+  <div class="card">
+    <h2>グレード別 完登数</h2>
+    <div id="chartGrade"></div>
+  </div>
+  <div class="card">
+    <h2>壁の種類別 トライ数</h2>
+    <div id="chartWall"></div>
+  </div>
+</section>
+
+<!-- 設定タブ -->
+<section id="settings" class="panel">
+  <div class="card">
+    <h2>ユーザー管理</h2>
+    <div class="inline"><input id="newUserName" placeholder="新しいユーザー名"><button class="primary small" id="addUser">追加</button></div>
+  </div>
+  <div class="card">
+    <h2>ジム・場所の管理</h2>
+    <div class="inline"><input id="newGym" placeholder="ジム名"><button class="primary small" id="addGym">追加</button></div>
+    <div id="gymList" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2>グレードの管理 <span class="muted" style="font-weight:normal;font-size:11px">※上が高難易度</span></h2>
+    <div class="inline"><input id="newGrade" placeholder="例: 4級"><button class="primary small" id="addGrade">追加</button></div>
+    <div id="gradeList" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2>データバックアップ</h2>
+    <div class="inline">
+      <button class="secondary small" id="exportData">出力(Export)</button>
+      <label class="secondary small" style="text-align:center;cursor:pointer">
+        取込(Import)<input type="file" id="importData" accept=".json" style="display:none">
+      </label>
+    </div>
+  </div>
+</section>
+</main>
+
+<dialog id="editModal">
+  <h3 style="margin-top:0">記録の編集</h3>
+  <div id="editForm"></div>
+  <div class="inline" style="margin-top:16px">
+    <button class="secondary" onclick="document.getElementById('editModal').close()">キャンセル</button>
+    <button class="primary" id="btnSaveEdit">更新する</button>
+  </div>
+</dialog>
+
+<script>
+const KEY = 'climbing-log-v2';
+const defaultSettings = { gyms: ['B-PUMP TOKYO', 'NOBOROCK'], grades: ['3段','2段','初段','1級','2級','3級','4級','5級','6級','7級'] };
+
+let app = loadData();
+
+function loadData() {
+  try {
+    let d = JSON.parse(localStorage.getItem(KEY));
+    if (!d || !d.users) throw 'No Data';
+    return d;
+  } catch(e) {
+    return {
+      users: ['自分'], currentUser: '自分',
+      data: { '自分': { gyms: [...defaultSettings.gyms], grades: [...defaultSettings.grades], sessions: [], tasks: [], activeSession: null } }
+    };
+  }
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(app)); }
+function getU() { return app.data[app.currentUser]; }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+function init() {
+  document.getElementById('tDate').value = document.getElementById('mDate').value = new Date().toLocaleDateString('sv-SE');
+  renderUserSelect();
+  renderAll();
+}
+
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', e => {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(e.target.dataset.tab).classList.add('active');
+  if(e.target.dataset.tab === 'history') renderHistory();
+  if(e.target.dataset.tab === 'analytics') renderAnalytics();
+}));
+
+function renderUserSelect() {
+  const sel = document.getElementById('userSelect');
+  sel.innerHTML = app.users.map(u => `<option ${u===app.currentUser?'selected':''}>${esc(u)}</option>`).join('');
+}
+document.getElementById('userSelect').onchange = (e) => {
+  app.currentUser = e.target.value;
+  save(); renderAll();
+};
+document.getElementById('addUser').onclick = () => {
+  let u = document.getElementById('newUserName').value.trim();
+  if(!u || app.users.includes(u)) return;
+  app.users.push(u);
+  app.data[u] = { gyms: [...defaultSettings.gyms], grades: [...defaultSettings.grades], sessions: [], tasks: [], activeSession: null };
+  app.currentUser = u;
+  document.getElementById('newUserName').value = '';
+  save(); renderUserSelect(); renderAll();
+};
+
+function renderAll() {
+  renderGyms(); renderGrades(); checkinStateUI();
+}
+
+function renderGyms() {
+  const u = getU();
+  const opts = u.gyms.map(g => `<option>${esc(g)}</option>`).join('');
+  document.getElementById('ciGym').innerHTML = document.getElementById('mGym').innerHTML = opts;
+  document.getElementById('gymList').innerHTML = u.gyms.map((g,i) => `<div class="inline" style="margin:7px 0"><span>${esc(g)}</span><button class="secondary small danger" onclick="delGym(${i})">削除</button></div>`).join('');
+}
+function renderGrades() {
+  const u = getU();
+  document.getElementById('tGrade').innerHTML = u.grades.map(g => `<option>${esc(g)}</option>`).join('');
+  document.getElementById('gradeList').innerHTML = u.grades.map((g,i) => `<div class="inline" style="margin:7px 0"><span>${esc(g)}</span><button class="secondary small danger" onclick="delGrade(${i})">削除</button></div>`).join('');
+}
+
+document.getElementById('addGym').onclick=()=>{let v=document.getElementById('newGym').value.trim(); if(v){ getU().gyms.push(v); save(); document.getElementById('newGym').value=''; renderGyms();} };
+document.getElementById('addGrade').onclick=()=>{let v=document.getElementById('newGrade').value.trim(); if(v){ getU().grades.push(v); save(); document.getElementById('newGrade').value=''; renderGrades();} };
+function delGym(i){ getU().gyms.splice(i,1); save(); renderGyms(); }
+function delGrade(i){ getU().grades.splice(i,1); save(); renderGrades(); }
+
+function checkinStateUI() {
+  const as = getU().activeSession;
+  if(as) {
+    document.getElementById('checkinCard').style.display = 'none';
+    document.getElementById('activeSessionBox').style.display = 'block';
+    document.getElementById('asGym').textContent = as.gym;
+    document.getElementById('asStart').textContent = as.start;
+  } else {
+    document.getElementById('checkinCard').style.display = 'block';
+    document.getElementById('activeSessionBox').style.display = 'none';
+  }
+}
+
+document.getElementById('btnCheckin').onclick = () => {
+  const now = new Date();
+  getU().activeSession = { id: Date.now(), gym: document.getElementById('ciGym').value, date: now.toLocaleDateString('sv-SE'), start: now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) };
+  save(); checkinStateUI();
+};
+
+document.getElementById('btnCheckout').onclick = () => {
+  const u = getU();
+  if(!u.activeSession) return;
+  const now = new Date();
+  let end = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  let s = {...u.activeSession, end, duration: calcDuration(u.activeSession.start, end)};
+  u.sessions.push(s);
+  u.activeSession = null;
+  save(); checkinStateUI();
+};
+
+document.getElementById('btnSaveManualSession').onclick = () => {
+  let s = { id: Date.now(), gym: document.getElementById('mGym').value, date: document.getElementById('mDate').value, start: document.getElementById('mStart').value, end: document.getElementById('mEnd').value };
+  s.duration = calcDuration(s.start, s.end);
+  getU().sessions.push(s); save();
+  document.getElementById('manualSessionCard').style.display = 'none';
+  document.querySelector('#checkinCard .secondary').style.display = 'inline-block';
+};
+
+function calcDuration(start, end) {
+  if(!start || !end) return '';
+  let [ah,am]=start.split(':').map(Number), [bh,bm]=end.split(':').map(Number);
+  let mins = (bh*60+bm) - (ah*60+am);
+  if(mins<0) mins+=1440;
+  return `${Math.floor(mins/60)}h ${mins%60}m`;
+}
+
+function saveTask(clone=false) {
+  const u = getU();
+  let t = {
+    id: Date.now(),
+    date: document.getElementById('tDate').value,
+    sessionId: u.activeSession ? u.activeSession.id : null,
+    name: document.getElementById('tName').value.trim(),
+    grade: document.getElementById('tGrade').value,
+    wall: document.getElementById('tWall').value,
+    result: document.getElementById('tResult').value,
+    note: document.getElementById('tNote').value.trim()
+  };
+  u.tasks.push(t); save();
+  
+  if(!clone) {
+    document.getElementById('tName').value = '';
+    document.getElementById('tNote').value = '';
+    document.getElementById('tResult').value = 'send';
+  }
+  let msg = document.createElement('div');
+  msg.textContent = '✅ 保存しました！';
+  msg.style = 'color:var(--success);font-weight:bold;text-align:center;margin-top:10px';
+  document.getElementById('tNote').parentNode.appendChild(msg);
+  setTimeout(()=>msg.remove(), 2000);
+}
+document.getElementById('btnSaveTask').onclick = () => saveTask(false);
+document.getElementById('btnSaveCloneTask').onclick = () => saveTask(true);
+
+function renderHistory() {
+  const u = getU();
+  const list = document.getElementById('historyList');
+  
+  let items = [...u.sessions.map(s=>({...s, type:'session'})), ...u.tasks.map(t=>({...t, type:'task'}))];
+  items.sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
+  
+  if(items.length===0){ list.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">記録がありません</div>'; return; }
+  
+  let html = '', curDate = '';
+  items.forEach(item => {
+    if(item.date !== curDate) {
+      curDate = item.date;
+      html += `<div class="history-date">${curDate.replace(/-/g, '/')}</div>`;
+    }
+    if(item.type === 'session') {
+      html += `<div class="card h-item" style="border-left:4px solid var(--accent)">
+        <div class="inline"><strong>🏢 ${esc(item.gym)}</strong><span class="muted">${item.start}〜${item.end} (${item.duration})</span></div>
+        <div style="margin-top:8px;text-align:right">
+          <button class="secondary small danger" onclick="delItem('session',${item.id})">削除</button>
+        </div>
+      </div>`;
+    } else {
+      let resBadge = item.result==='flash' ? '<span class="pill flash">⚡1撃</span>' : item.result==='send' ? '<span class="pill send">○完登</span>' : '<span class="pill fail">×未完登</span>';
+      html += `<div class="card h-item">
+        <div class="inline"><strong>${esc(item.name)||'課題'}</strong><span class="pill">${esc(item.grade)}</span>${resBadge}</div>
+        <div class="muted" style="margin-top:4px">${esc(item.wall)} ${item.note ? ' ／ '+esc(item.note) : ''}</div>
+        <div style="margin-top:8px;text-align:right">
+          <button class="secondary small danger" onclick="delItem('task',${item.id})">削除</button>
+        </div>
+      </div>`;
+    }
+  });
+  list.innerHTML = html;
+}
+
+function delItem(type, id) {
+  const u = getU();
+  if(type==='session') u.sessions = u.sessions.filter(s=>s.id!==id);
+  else u.tasks = u.tasks.filter(t=>t.id!==id);
+  save(); renderHistory();
+}
+
+function renderAnalytics() {
+  const u = getU();
+  const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
+  document.getElementById('calMonth').textContent = `${y}年 ${m+1}月`;
+  
+  const firstDay = new Date(y, m, 1).getDay();
+  const days = new Date(y, m+1, 0).getDate();
+  const cal = document.getElementById('calendar');
+  let cHtml = ['日','月','火','水','木','金','土'].map(d=>`<div class="cal-head">${d}</div>`).join('');
+  
+  for(let i=0; i<firstDay; i++) cHtml += `<div></div>`;
+  
+  let mPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
+  let activeDates = new Set([...u.sessions, ...u.tasks].filter(x => x.date.startsWith(mPrefix)).map(x => x.date));
+  
+  for(let d=1; d<=days; d++) {
+    let dateStr = `${mPrefix}-${String(d).padStart(2,'0')}`;
+    let cls = activeDates.has(dateStr) ? 'cal-day active' : 'cal-day';
+    cHtml += `<div class="${cls}">${d}</div>`;
+  }
+  cal.innerHTML = cHtml;
+
+  let tSend = u.tasks.filter(t=>t.result==='send'||t.result==='flash').length;
+  document.getElementById('statSend').textContent = tSend;
+  document.getElementById('statRate').textContent = u.tasks.length ? Math.round((tSend/u.tasks.length)*100)+'%' : '0%';
+  
+  let mSessions = u.sessions.filter(s=>s.date.startsWith(mPrefix));
+  let mins = mSessions.reduce((acc, s) => {
+    let mMatch = s.duration ? s.duration.match(/(\d+)h\s*(\d+)m/) : null;
+    if(mMatch) return acc + parseInt(mMatch[1])*60 + parseInt(mMatch[2]);
+    return acc;
+  }, 0);
+  document.getElementById('statHours').textContent = (mins/60).toFixed(1);
+
+  let maxGradeIdx = Infinity, maxGradeStr = 'なし';
+  u.tasks.filter(t=>t.result==='send'||t.result==='flash').forEach(t => {
+    let idx = u.grades.indexOf(t.grade);
+    if(idx !== -1 && idx < maxGradeIdx) { maxGradeIdx = idx; maxGradeStr = t.grade; }
+  });
+  document.getElementById('statMax').textContent = maxGradeStr;
+
+  let gCount = {}; u.tasks.forEach(t => { if(t.result==='send'||t.result==='flash') gCount[t.grade] = (gCount[t.grade]||0)+1; });
+  let gMax = Math.max(1, ...Object.values(gCount));
+  document.getElementById('chartGrade').innerHTML = u.grades.filter(g=>gCount[g]).map(g => renderBar(g, gCount[g], gMax)).join('') || '<div class="muted">データなし</div>';
+
+  let wCount = {}; u.tasks.forEach(t => wCount[t.wall] = (wCount[t.wall]||0)+1);
+  let wMax = Math.max(1, ...Object.values(wCount));
+  document.getElementById('chartWall').innerHTML = Object.entries(wCount).sort((a,b)=>b[1]-a[1]).map(([w,c]) => renderBar(w, c, wMax)).join('') || '<div class="muted">データなし</div>';
+}
+
+function renderBar(label, count, max) {
+  let pct = Math.round((count/max)*100);
+  return `<div class="bar-row"><div class="bar-label">${esc(label)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="muted" style="width:20px">${count}</div></div>`;
+}
+
+document.getElementById('exportData').onclick = () => {
+  let blob = new Blob([JSON.stringify(app, null, 2)], {type:'application/json'});
+  let a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `climbing_log_v2_${new Date().toISOString().slice(0,10)}.json`; a.click();
+};
+document.getElementById('importData').onchange = (e) => {
+  let file = e.target.files[0]; if(!file) return;
+  let reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      let imp = JSON.parse(evt.target.result);
+      if(imp.users) {
+        app = imp; save(); init();
+      }
+    }catch(err){}
+  };
+  reader.readAsText(file);
+};
+
+init();
+</script>
+</body>
+</html>
+```
+
+エディタ枠の右上にあるダウンロードボタンでファイルとして取得できます。また、プレビュー画面で直接動作確認することもできます。
