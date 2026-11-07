@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#18231f">
+<title>Climbing Log v3</title>
+<style>
+:root{--bg:#f4f6f3;--card:#fff;--ink:#1d2924;--muted:#6b7771;--line:#e1e7e2;--accent:#236b50;--soft:#e8f2ec;--danger:#a33b35;--success:#2d8a64;--flash:#e69b00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#18231f;color:#fff;padding:22px 18px 18px;display:flex;justify-content:space-between;align-items:flex-end}
+header .sub{font-size:11px;letter-spacing:.16em;opacity:.7}header h1{font-size:24px;margin:5px 0 0}
+.user-select{background:#303d38;color:#fff;border:1px solid #4a5953;padding:6px 10px;border-radius:8px;font-size:13px;outline:none;max-width:120px}
+main{max-width:760px;margin:auto;padding:16px 14px 90px}
+.tabs{display:flex;gap:7px;margin:0 0 16px;overflow:auto}.tab{border:1px solid var(--line);background:#fff;color:var(--muted);padding:10px 13px;border-radius:12px;font-weight:650;white-space:nowrap;cursor:pointer;flex:1;text-align:center}.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:13px;box-shadow:0 2px 8px #15251b08;position:relative}
+h2{font-size:18px;margin:0 0 14px;display:flex;justify-content:space-between;align-items:center}
+.muted{color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:12px}.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;color:var(--muted);font-weight:650;margin-bottom:6px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;color:var(--ink);font:inherit;font-size:15px}
+textarea{min-height:70px;resize:vertical}
+button{font:inherit;cursor:pointer}.primary{border:0;border-radius:11px;background:var(--accent);color:#fff;padding:12px 15px;font-weight:700;width:100%}.secondary{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;color:var(--ink);font-weight:650}.small{padding:6px 10px;font-size:12px;width:auto}.danger{color:var(--danger);border-color:#efd8d5}.success{background:var(--success);color:#fff;border:0}.flash{background:var(--flash);color:#fff;border:0}
+.inline{display:flex;gap:8px;align-items:center}.inline>*{flex:1}
+.pill{font-size:11px;padding:4px 8px;border-radius:99px;background:var(--soft);color:var(--accent);font-weight:700; display:inline-block}
+.pill.flash{background:#fff4e5;color:var(--flash)}.pill.send{background:#e8f4ef;color:var(--success)}.pill.fail{background:#f4e8e8;color:var(--danger)}
+.checkin-box{background:var(--soft);border:1px solid var(--accent);border-radius:12px;padding:16px;text-align:center;margin-bottom:16px}
+.checkin-time{font-size:24px;font-weight:700;color:var(--accent);margin:8px 0}
+/* History */
+.history-date{font-size:14px;font-weight:700;background:var(--bg);padding:10px 0 5px;position:sticky;top:0;border-bottom:2px solid var(--line);margin-top:10px;color:var(--muted)}
+.h-item{padding:12px 0;border-bottom:1px solid var(--line)}.h-item:last-child{border-bottom:0}
+/* Analytics */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}.stat{background:var(--soft);padding:14px 10px;border-radius:12px;text-align:center}.stat b{display:block;font-size:22px;color:var(--accent)}.stat span{font-size:12px;color:var(--muted)}
+.stat.clickable{cursor:pointer; transition: opacity 0.2s; border:1px solid var(--accent); background:#fff}.stat.clickable:active{opacity:0.6}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px;margin-top:8px}
+.cal-head{font-weight:700;color:var(--muted);padding-bottom:4px}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;background:#f9faf9;border:1px solid var(--line);cursor:pointer;position:relative}
+.cal-day .d-num{font-weight:600}
+.cal-day .d-time{font-size:9px;color:var(--accent);font-weight:700;margin-top:2px}
+.cal-day.active{background:var(--soft);border-color:var(--accent)}
+.cal-day.selected{background:var(--accent);color:#fff}.cal-day.selected .d-time{color:#fff}
+.cal-details{background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:12px;margin-top:10px;display:none;font-size:13px}
+/* Stacked Chart */
+.wall-chart{margin-bottom:16px;border-bottom:1px dashed var(--line);padding-bottom:12px}.wall-chart:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.wall-title{font-weight:700;margin-bottom:6px;font-size:14px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.bar-label{width:35px;text-align:right;color:var(--muted)}
+.bar-track{flex:1;background:var(--bg);height:14px;border-radius:4px;display:flex;overflow:hidden}
+.bar-segment{height:100%; display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:bold}
+.bar-count{width:20px;text-align:left;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px;font-size:11px;padding:10px;background:var(--soft);border-radius:8px;margin-bottom:16px}
+.legend-item{display:flex;align-items:center;gap:4px}.legend-color{width:10px;height:10px;border-radius:2px}
+/* Modal */
+dialog{border:0;border-radius:16px;padding:20px;width:92%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,0.2)}dialog::backdrop{background:rgba(0,0,0,0.5)}
+/* Step UI */
+.step-container{display:none}.step-container.active{display:block}
+.context-badge{background:#e8f2ec;color:#236b50;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:12px;text-align:center;border:1px dashed #236b50}
+/* Settings List */
+.list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--line);font-size:14px}.list-item:last-child{border-bottom:none}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="sub">BOULDERING JOURNAL</div><h1>Climbing Log</h1></div>
+  <select id="userSelect" class="user-select"></select>
+</header>
+<main>
+<nav class="tabs">
+  <button class="tab active" data-tab="record">記録</button>
+  <button class="tab" data-tab="history">履歴</button>
+  <button class="tab" data-tab="analytics">分析</button>
+  <button class="tab" data-tab="settings">設定</button>
+</nav>
+
+<!-- 記録タブ -->
+<section id="record" class="panel active">
+  <!-- チェックイン -->
+  <div class="card" id="checkinCard">
+    <h2>ジムにチェックイン</h2>
+    <div class="field"><label>場所</label><select id="ciGym"></select></div>
+    <button class="primary" id="btnCheckin">現在時刻でチェックイン</button>
+  </div>
+  
+  <div class="checkin-box" id="activeSessionBox" style="display:none">
+    <div class="muted">チェックイン中</div>
+    <div class="checkin-time" id="asGym">Gym Name</div>
+    <div class="muted" style="margin-bottom:4px" id="asSet">セット情報</div>
+    <div class="muted" style="margin-bottom:12px"><span id="asStart">00:00</span> 〜 プレイ中</div>
+    <button class="primary danger" id="btnCheckout">現在時刻でチェックアウト</button>
+  </div>
+
+  <!-- 課題記録 (2段階入力) -->
+  <div class="card" style="margin-top:20px">
+    <h2>課題の記録</h2>
+    
+    <!-- Step 1: 壁とグレード -->
+    <div id="taskStep1" class="step-container active">
+      <div id="s1Context" class="field" style="display:none">
+         <label>日付・場所 (※非チェックイン時)</label>
+         <input type="date" id="tDate" style="margin-bottom:6px">
+         <select id="tGymFallback"></select>
+      </div>
+      <div class="grid">
+        <div class="field"><label>グレード</label><select id="tGrade"></select></div>
+        <div class="field"><label>壁の種類</label><select id="tWall">
+          <option>スラブ</option><option>垂壁</option><option>薄かぶり</option><option>強傾斜</option><option>ルーフ</option><option>その他</option>
+        </select></div>
+      </div>
+      <button class="primary" id="btnNextStep" style="margin-top:12px">次へ (名前・結果の入力)</button>
+    </div>
+
+    <!-- Step 2: 名前と結果 -->
+    <div id="taskStep2" class="step-container">
+      <div class="context-badge" id="taskContextLabel">セット / グレード / 壁</div>
+      <div class="field"><label>課題名 (※セット名やグレードは自動結合されます)</label><input id="tName" placeholder="例: A, 赤12番"></div>
+      <div class="field"><label>結果</label>
+        <select id="tResult">
+          <option value="flash">⚡ 1撃完登 (Flash)</option>
+          <option value="send" selected>○ 完登 (Send)</option>
+          <option value="fail">× 未完登 / トライ中</option>
+        </select>
+      </div>
+      <div class="field"><label>メモ</label><textarea id="tNote" placeholder="ムーブや反省点"></textarea></div>
+      <div class="inline" style="margin-top:12px">
+        <button class="secondary" onclick="switchStep(1)">戻る</button>
+        <button class="primary" id="btnSaveTask">保存</button>
+        <button class="secondary" id="btnSaveCloneTask">保存＆複製</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 履歴タブ -->
+<section id="history" class="panel"><div id="historyList"></div></section>
+
+<!-- 分析タブ -->
+<section id="analytics" class="panel">
+  <!-- サマリー -->
+  <div class="stats">
+    <div class="stat"><b id="statSend">0</b><span>全体の完登数</span></div>
+    <div class="stat clickable" id="btnShowFails" title="タップで現在の未完課題を見る"><b id="statFail" style="color:var(--danger)">0</b><span style="text-decoration:underline">未完登(タップで確認)</span></div>
+    <div class="stat"><b id="statRate">0%</b><span>完登率</span></div>
+    <div class="stat"><b id="statHours">0</b><span>今月の時間 (h)</span></div>
+  </div>
+  
+  <!-- カレンダー -->
+  <div class="card">
+    <h2 id="calMonth">202X年 X月</h2>
+    <div class="cal-grid" id="calendar"></div>
+    <div id="calDetails" class="cal-details"></div>
+  </div>
+  
+  <!-- 壁種別グラフ -->
+  <div class="card">
+    <h2>壁の種類別 成果 <span class="muted" style="font-weight:normal;font-size:11px">※グレード色分け</span></h2>
+    <div id="chartLegend" class="legend"></div>
+    <div id="chartWall"></div>
+  </div>
+</section>
+
+<!-- 設定タブ -->
+<section id="settings" class="panel">
+  <div class="card">
+    <h2>アカウント管理</h2>
+    <div class="inline"><input id="newUserName" placeholder="新しいアカウント名"><button class="primary small" id="addUser">追加</button></div>
+    <div id="setUsersList" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2>ジム・セット管理</h2>
+    <div class="inline"><input id="newGymName" placeholder="新しいジム名"><button class="primary small" id="addGym">追加</button></div>
+    <div id="setGymsList" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2>グレード管理 <span class="muted" style="font-weight:normal;font-size:11px">※上が高難易度</span></h2>
+    <div class="inline"><input id="newGradeName" placeholder="新しいグレード"><button class="primary small" id="addGrade">追加</button></div>
+    <div id="setGradesList" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h2>データバックアップ</h2>
+    <div class="inline">
+      <button class="secondary small" id="exportData">出力(Export)</button>
+      <label class="secondary small" style="text-align:center;cursor:pointer">
+        取込(Import)<input type="file" id="importData" accept=".json" style="display:none">
+      </label>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- セット更新ダイアログ (チェックイン時) -->
+<dialog id="setUpdateModal">
+  <h3 style="margin-top:0">セット(壁)の更新</h3>
+  <p class="muted" style="font-size:13px;margin-bottom:16px">このジムのセット期間が終了しています。新しいセット情報を登録してください。</p>
+  <div class="field"><label>新しいセット名</label><input id="mSetName" placeholder="例: 2026年6月セット"></div>
+  <div class="grid">
+    <div class="field"><label>開始日</label><input type="date" id="mSetStart"></div>
+    <div class="field"><label>終了日</label><input type="date" id="mSetEnd"></div>
+  </div>
+  <div class="inline" style="margin-top:20px">
+    <button class="secondary" id="btnSkipSetUpdate">スキップ(現状維持)</button>
+    <button class="primary" id="btnSaveSetUpdate">更新してチェックイン</button>
+  </div>
+</dialog>
+
+<!-- 設定画面からのジムセット編集ダイアログ -->
+<dialog id="gymEditModal">
+  <h3 style="margin-top:0">ジム・セット編集</h3>
+  <div class="field"><label>ジム名</label><input id="eGymName"></div>
+  <div class="field"><label>現在のアクティブセット名</label><input id="eSetName"></div>
+  <div class="grid">
+    <div class="field"><label>セット開始日</label><input type="date" id="eSetStart"></div>
+    <div class="field"><label>セット終了日</label><input type="date" id="eSetEnd"></div>
+  </div>
+  <input type="hidden" id="eGymId">
+  <div class="inline" style="margin-top:20px">
+    <button class="secondary" onclick="document.getElementById('gymEditModal').close()">キャンセル</button>
+    <button class="primary" id="btnSaveGymEdit">保存</button>
+  </div>
+</dialog>
+
+<!-- 未完課題リストダイアログ -->
+<dialog id="failListModal">
+  <h3 style="margin-top:0">現在のセットの未完課題</h3>
+  <div id="failListContent" style="max-height:60vh;overflow:auto;margin-bottom:16px"></div>
+  <button class="secondary" style="width:100%" onclick="document.getElementById('failListModal').close()">閉じる</button>
+</dialog>
+
+<script>
+const KEY = 'climbing-log-v3';
+// グレードカラー定義 (10色ループ)
+const COLORS = ['#ff4b4b','#ff9500','#ffd34b','#4cd964','#5ac8fa','#007aff','#af52de','#ff2d55','#8e8e93','#c7c7cc'];
+
+const defaultGyms = [
+  { id: 1, name: 'B-PUMP TOKYO', currentSet: { name: '初期セット', start: '2026-01-01', end: '2026-12-31' } },
+  { id: 2, name: 'NOBOROCK', currentSet: { name: '初期セット', start: '2026-01-01', end: '2026-12-31' } }
+];
+const defaultGrades = ['3段','2段','初段','1級','2級','3級','4級','5級','6級','7級'];
+
+let app = loadData();
+let tempCheckinGymId = null; // セット更新保留時のID保持用
+let activeContext = {}; // Step2に渡すデータ
+
+function getNewGymsTemplate() {
+  let nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth()+1);
+  return defaultGyms.map(g => ({
+    id: g.id, name: g.name, 
+    currentSet: { name: '初回セット', start: new Date().toLocaleDateString('sv-SE'), end: nextMonth.toLocaleDateString('sv-SE') }
+  }));
+}
+
+function loadData() {
+  try {
+    let d = JSON.parse(localStorage.getItem(KEY));
+    if (!d || !d.users || !d.data[d.currentUser]) throw 'No Data';
+    return d;
+  } catch(e) {
+    return {
+      users: ['自分'], currentUser: '自分',
+      data: { '自分': { gyms: getNewGymsTemplate(), grades: [...defaultGrades], sessions: [], tasks: [], activeSession: null } }
+    };
+  }
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(app)); }
+function getU() { return app.data[app.currentUser]; }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+function getGradeColor(grade) {
+  let idx = getU().grades.indexOf(grade);
+  return idx === -1 ? '#999' : COLORS[idx % COLORS.length];
+}
+
+// --- 初期化 ---
+function init() {
+  document.getElementById('tDate').value = new Date().toLocaleDateString('sv-SE');
+  renderUserSelect();
+  renderAll(); // ここで確実に入力フォームを構築
+  switchStep(1);
+}
+
+// --- タブ制御 ---
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', e => {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(e.target.dataset.tab).classList.add('active');
+  if(e.target.dataset.tab === 'history') renderHistory();
+  if(e.target.dataset.tab === 'analytics') renderAnalytics();
+  if(e.target.dataset.tab === 'settings') renderSettings();
+}));
+
+// --- 画面レンダリング（全画面同期） ---
+function renderAll() {
+  const u = getU();
+  // 記録タブの選択肢更新
+  const gymOpts = u.gyms.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+  document.getElementById('ciGym').innerHTML = gymOpts;
+  document.getElementById('tGymFallback').innerHTML = gymOpts;
+  
+  const gradeOpts = u.grades.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  document.getElementById('tGrade').innerHTML = gradeOpts;
+  
+  checkinStateUI();
+  renderSettings();
+}
+
+function renderUserSelect() {
+  const sel = document.getElementById('userSelect');
+  sel.innerHTML = app.users.map(u => `<option value="${esc(u)}" ${u===app.currentUser?'selected':''}>${esc(u)}</option>`).join('');
+}
+document.getElementById('userSelect').onchange = (e) => { 
+  app.currentUser = e.target.value; 
+  save(); 
+  renderAll(); 
+  switchStep(1); 
+};
+
+// --- 設定画面の管理 ---
+function renderSettings() {
+  const u = getU();
+  // アカウントリスト
+  document.getElementById('setUsersList').innerHTML = app.users.map(user => 
+    `<div class="list-item">
+      <span>${esc(user)}${user===app.currentUser?' <span class="pill">現在</span>':''}</span>
+      ${app.users.length > 1 ? `<button class="secondary small danger" onclick="deleteUser('${esc(user)}')">削除</button>` : ''}
+    </div>`
+  ).join('');
+  
+  // ジムリスト
+  document.getElementById('setGymsList').innerHTML = u.gyms.map(g => 
+    `<div class="list-item">
+      <div>
+        <strong>${esc(g.name)}</strong>
+        <div class="muted" style="font-size:11px">[${esc(g.currentSet.name)}] ${g.currentSet.start} ~ ${g.currentSet.end}</div>
+      </div>
+      <div>
+        <button class="secondary small" onclick="openGymEdit(${g.id})">編集</button>
+        <button class="secondary small danger" onclick="deleteGym(${g.id})">削除</button>
+      </div>
+    </div>`
+  ).join('');
+
+  // グレードリスト
+  document.getElementById('setGradesList').innerHTML = u.grades.map((g, idx) => 
+    `<div class="list-item">
+      <span><span class="legend-color" style="display:inline-block;background:${getGradeColor(g)};margin-right:8px"></span>${esc(g)}</span>
+      <button class="secondary small danger" onclick="deleteGrade(${idx})">削除</button>
+    </div>`
+  ).join('');
+}
+
+// ユーザー管理
+document.getElementById('addUser').onclick = () => {
+  let uName = document.getElementById('newUserName').value.trim();
+  if(!uName || app.users.includes(uName)) return;
+  app.users.push(uName);
+  app.data[uName] = { gyms: getNewGymsTemplate(), grades: [...defaultGrades], sessions: [], tasks: [], activeSession: null };
+  app.currentUser = uName; // 新規追加したらそのユーザーに切り替え
+  document.getElementById('newUserName').value = '';
+  save(); renderUserSelect(); renderAll(); switchStep(1);
+};
+function deleteUser(uName) {
+  if(!confirm(`アカウント「${uName}」の全記録を削除します。よろしいですか？`)) return;
+  app.users = app.users.filter(u => u !== uName);
+  delete app.data[uName];
+  if(app.currentUser === uName) app.currentUser = app.users[0];
+  save(); renderUserSelect(); renderAll();
+}
+
+// ジム管理
+document.getElementById('addGym').onclick = () => {
+  let name = document.getElementById('newGymName').value.trim();
+  if(!name) return;
+  let nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth()+1);
+  let gId = Date.now();
+  getU().gyms.push({
+    id: gId, name: name, 
+    currentSet: { name: '初回セット', start: new Date().toLocaleDateString('sv-SE'), end: nextMonth.toLocaleDateString('sv-SE') }
+  });
+  document.getElementById('newGymName').value = '';
+  save(); renderAll();
+};
+function openGymEdit(id) {
+  let gym = getU().gyms.find(g => g.id === id);
+  if(!gym) return;
+  document.getElementById('eGymId').value = gym.id;
+  document.getElementById('eGymName').value = gym.name;
+  document.getElementById('eSetName').value = gym.currentSet.name;
+  document.getElementById('eSetStart').value = gym.currentSet.start;
+  document.getElementById('eSetEnd').value = gym.currentSet.end;
+  document.getElementById('gymEditModal').showModal();
+}
+document.getElementById('btnSaveGymEdit').onclick = () => {
+  let id = parseInt(document.getElementById('eGymId').value);
+  let gym = getU().gyms.find(g => g.id === id);
+  if(gym) {
+    gym.name = document.getElementById('eGymName').value.trim();
+    gym.currentSet.name = document.getElementById('eSetName').value.trim();
+    gym.currentSet.start = document.getElementById('eSetStart').value;
+    gym.currentSet.end = document.getElementById('eSetEnd').value;
+    save(); renderAll();
+  }
+  document.getElementById('gymEditModal').close();
+};
+function deleteGym(id) {
+  if(!confirm('ジムを削除しますか？(過去の履歴には影響しません)')) return;
+  getU().gyms = getU().gyms.filter(g => g.id !== id);
+  save(); renderAll();
+}
+
+// グレード管理
+document.getElementById('addGrade').onclick = () => {
+  let name = document.getElementById('newGradeName').value.trim();
+  if(name && !getU().grades.includes(name)) {
+    getU().grades.push(name);
+    document.getElementById('newGradeName').value = '';
+    save(); renderAll();
+  }
+};
+function deleteGrade(idx) {
+  if(!confirm('グレードを削除しますか？')) return;
+  getU().grades.splice(idx, 1);
+  save(); renderAll();
+}
+
+
+// --- チェックインとセット管理 ---
+function checkinStateUI() {
+  const as = getU().activeSession;
+  if(as) {
+    document.getElementById('checkinCard').style.display = 'none';
+    document.getElementById('s1Context').style.display = 'none'; // チェックイン中は日付場所不要
+    document.getElementById('activeSessionBox').style.display = 'block';
+    document.getElementById('asGym').textContent = as.gymName;
+    document.getElementById('asSet').textContent = `[${as.setName}]`;
+    document.getElementById('asStart').textContent = as.start;
+  } else {
+    document.getElementById('checkinCard').style.display = 'block';
+    document.getElementById('s1Context').style.display = 'block'; // 手動用に表示
+    document.getElementById('activeSessionBox').style.display = 'none';
+  }
+}
+
+document.getElementById('btnCheckin').onclick = () => {
+  const u = getU();
+  const gymId = parseInt(document.getElementById('ciGym').value);
+  const gym = u.gyms.find(g => g.id === gymId);
+  if(!gym) return alert('ジムを選択してください（設定タブから追加可能）');
+  
+  const todayStr = new Date().toLocaleDateString('sv-SE');
+  if (gym.currentSet.end < todayStr) {
+    // セット更新ダイアログ表示
+    tempCheckinGymId = gymId;
+    let nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth()+1);
+    document.getElementById('mSetName').value = '';
+    document.getElementById('mSetStart').value = todayStr;
+    document.getElementById('mSetEnd').value = nextMonth.toLocaleDateString('sv-SE');
+    document.getElementById('setUpdateModal').showModal();
+  } else {
+    executeCheckin(gym);
+  }
+};
+
+document.getElementById('btnSkipSetUpdate').onclick = () => {
+  document.getElementById('setUpdateModal').close();
+  const gym = getU().gyms.find(g => g.id === tempCheckinGymId);
+  if(gym) executeCheckin(gym);
+};
+
+document.getElementById('btnSaveSetUpdate').onclick = () => {
+  const u = getU();
+  const gym = u.gyms.find(g => g.id === tempCheckinGymId);
+  if(!gym) return;
+  let sName = document.getElementById('mSetName').value.trim() || '新規セット';
+  gym.currentSet = {
+    name: sName,
+    start: document.getElementById('mSetStart').value,
+    end: document.getElementById('mSetEnd').value
+  };
+  save();
+  renderAll(); // 設定画面などの表示更新
+  document.getElementById('setUpdateModal').close();
+  executeCheckin(gym);
+};
+
+function executeCheckin(gym) {
+  const now = new Date();
+  getU().activeSession = {
+    id: Date.now(), gymId: gym.id, gymName: gym.name,
+    setId: gym.currentSet.name, setName: gym.currentSet.name,
+    date: now.toLocaleDateString('sv-SE'),
+    start: now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})
+  };
+  save(); checkinStateUI();
+}
+
+document.getElementById('btnCheckout').onclick = () => {
+  const u = getU();
+  if(!u.activeSession) return;
+  const now = new Date();
+  let end = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  let s = {...u.activeSession, end, duration: calcDuration(u.activeSession.start, end)};
+  u.sessions.push(s);
+  u.activeSession = null;
+  save(); checkinStateUI();
+};
+
+function calcDuration(start, end) {
+  if(!start || !end) return '';
+  let [ah,am]=start.split(':').map(Number), [bh,bm]=end.split(':').map(Number);
+  let mins = (bh*60+bm) - (ah*60+am);
+  if(mins<0) mins+=1440;
+  return `${Math.floor(mins/60)}h ${mins%60}m`;
+}
+
+// --- 課題記録 (2 Step) ---
+function switchStep(step) {
+  document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+  document.getElementById('taskStep' + step).classList.add('active');
+}
+
+document.getElementById('btnNextStep').onclick = () => {
+  const u = getU();
+  const as = u.activeSession;
+  
+  let grade = document.getElementById('tGrade').value;
+  if(!grade) return alert('グレードが選択されていません');
+  let wall = document.getElementById('tWall').value;
+  
+  if(as) {
+    activeContext = { date: as.date, gymId: as.gymId, gymName: as.gymName, setName: as.setName, grade, wall, sessionId: as.id };
+  } else {
+    let gymId = parseInt(document.getElementById('tGymFallback').value);
+    let gym = u.gyms.find(g => g.id === gymId);
+    if(!gym) return alert('ジムを選択してください');
+    activeContext = { date: document.getElementById('tDate').value, gymId, gymName: gym.name, setName: gym.currentSet.name, grade, wall, sessionId: null };
+  }
+  
+  document.getElementById('taskContextLabel').textContent = `${activeContext.setName} / ${activeContext.grade} / ${activeContext.wall}`;
+  switchStep(2);
+};
+
+function saveTask(clone=false) {
+  const u = getU();
+  let inputName = document.getElementById('tName').value.trim() || '名称未設定';
+  // フォーマット結合: [セット名_グレード_名前]
+  let fullName = `${activeContext.setName}_${activeContext.grade}_${inputName}`;
+  
+  let t = {
+    id: Date.now(),
+    date: activeContext.date,
+    sessionId: activeContext.sessionId,
+    gymId: activeContext.gymId, gymName: activeContext.gymName,
+    setName: activeContext.setName,
+    grade: activeContext.grade,
+    wall: activeContext.wall,
+    name: fullName, 
+    shortName: inputName, // 表示用に短い名前も保持
+    result: document.getElementById('tResult').value,
+    note: document.getElementById('tNote').value.trim()
+  };
+  u.tasks.push(t); save();
+  
+  if(!clone) {
+    document.getElementById('tName').value = '';
+    document.getElementById('tNote').value = '';
+    document.getElementById('tResult').value = 'send';
+    switchStep(1);
+  } else {
+    let msg = document.createElement('div');
+    msg.textContent = '✅ 保存しました！続けて入力できます。';
+    msg.style = 'color:var(--success);font-weight:bold;text-align:center;margin-top:10px';
+    document.getElementById('tNote').parentNode.appendChild(msg);
+    setTimeout(()=>msg.remove(), 2000);
+  }
+}
+document.getElementById('btnSaveTask').onclick = () => saveTask(false);
+document.getElementById('btnSaveCloneTask').onclick = () => saveTask(true);
+
+// --- 履歴表示 ---
+function renderHistory() {
+  const u = getU();
+  const list = document.getElementById('historyList');
+  let items = [...u.sessions.map(s=>({...s, type:'session'})), ...u.tasks.map(t=>({...t, type:'task'}))];
+  items.sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
+  
+  if(items.length===0){ list.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">記録がありません</div>'; return; }
+  
+  let html = '', curDate = '';
+  items.forEach(item => {
+    if(item.date !== curDate) {
+      curDate = item.date;
+      html += `<div class="history-date">${curDate.replace(/-/g, '/')}</div>`;
+    }
+    if(item.type === 'session') {
+      html += `<div class="card h-item" style="border-left:4px solid var(--accent)">
+        <div class="inline"><strong>🏢 ${esc(item.gymName)}</strong><span class="muted">${item.start}〜${item.end} (${item.duration})</span></div>
+        <div class="muted" style="margin-top:4px">[${esc(item.setName)}]</div>
+        <div style="margin-top:8px;text-align:right">
+          <button class="secondary small danger" onclick="delItem('session',${item.id})">削除</button>
+        </div>
+      </div>`;
+    } else {
+      let resBadge = item.result==='flash' ? '<span class="pill flash">⚡1撃</span>' : item.result==='send' ? '<span class="pill send">○完登</span>' : '<span class="pill fail">×未完登</span>';
+      html += `<div class="card h-item">
+        <div class="inline"><strong>${esc(item.name)}</strong>${resBadge}</div>
+        <div class="muted" style="margin-top:4px">${esc(item.gymName)} / ${esc(item.wall)} ${item.note ? ' ／ '+esc(item.note) : ''}</div>
+        <div style="margin-top:8px;text-align:right">
+          <button class="secondary small danger" onclick="delItem('task',${item.id})">削除</button>
+        </div>
+      </div>`;
+    }
+  });
+  list.innerHTML = html;
+}
+
+function delItem(type, id) {
+  const u = getU();
+  if(type==='session') u.sessions = u.sessions.filter(s=>s.id!==id);
+  else u.tasks = u.tasks.filter(t=>t.id!==id);
+  save(); renderHistory();
+}
+
+// --- 分析・カレンダー ---
+function renderAnalytics() {
+  const u = getU();
+  const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
+  document.getElementById('calMonth').textContent = `${y}年 ${m+1}月`;
+  
+  // 1. サマリー計算 (全期間)
+  let totalTasks = u.tasks.length;
+  let sendTasks = u.tasks.filter(t=>t.result==='send'||t.result==='flash');
+  let failTasks = u.tasks.filter(t=>t.result==='fail');
+  document.getElementById('statSend').textContent = sendTasks.length;
+  document.getElementById('statFail').textContent = failTasks.length;
+  document.getElementById('statRate').textContent = totalTasks ? Math.round((sendTasks.length/totalTasks)*100)+'%' : '0%';
+  
+  let mPrefix = `${y}-${String(m+1).padStart(2,'0')}`;
+  let mSessions = u.sessions.filter(s=>s.date.startsWith(mPrefix));
+  let mins = mSessions.reduce((acc, s) => {
+    let mMatch = s.duration ? s.duration.match(/(\d+)h\s*(\d+)m/) : null;
+    if(mMatch) return acc + parseInt(mMatch[1])*60 + parseInt(mMatch[2]);
+    return acc;
+  }, 0);
+  document.getElementById('statHours').textContent = (mins/60).toFixed(1);
+
+  // 2. カレンダー構築
+  const firstDay = new Date(y, m, 1).getDay();
+  const days = new Date(y, m+1, 0).getDate();
+  const cal = document.getElementById('calendar');
+  let cHtml = ['日','月','火','水','木','金','土'].map(d=>`<div class="cal-head">${d}</div>`).join('');
+  for(let i=0; i<firstDay; i++) cHtml += `<div></div>`;
+  
+  for(let d=1; d<=days; d++) {
+    let dateStr = `${mPrefix}-${String(d).padStart(2,'0')}`;
+    let daySessions = u.sessions.filter(s=>s.date === dateStr);
+    let dayTasks = u.tasks.filter(t=>t.date === dateStr);
+    
+    let hasAct = daySessions.length > 0 || dayTasks.length > 0;
+    let cls = hasAct ? 'cal-day active' : 'cal-day';
+    
+    // その日の合計時間計算
+    let dMins = daySessions.reduce((acc, s) => {
+      let mMatch = s.duration ? s.duration.match(/(\d+)h\s*(\d+)m/) : null;
+      if(mMatch) return acc + parseInt(mMatch[1])*60 + parseInt(mMatch[2]); return acc;
+    }, 0);
+    let timeStr = dMins > 0 ? (dMins%60===0 ? `${dMins/60}h` : `${(dMins/60).toFixed(1)}h`) : '';
+    
+    cHtml += `<div class="${cls}" onclick="showCalDetails('${dateStr}', this)">
+      <div class="d-num">${d}</div>
+      <div class="d-time">${timeStr}</div>
+    </div>`;
+  }
+  cal.innerHTML = cHtml;
+  document.getElementById('calDetails').style.display = 'none'; // 初期非表示
+
+  // 3. 壁種別 積み上げグラフ
+  renderStackedChart(u.tasks);
+}
+
+// カレンダー詳細表示
+function showCalDetails(dateStr, el) {
+  document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('selected'));
+  if(el) el.classList.add('selected');
+  
+  const u = getU();
+  const box = document.getElementById('calDetails');
+  let dSessions = u.sessions.filter(s=>s.date === dateStr);
+  let dTasks = u.tasks.filter(t=>t.date === dateStr);
+  
+  if(dSessions.length === 0 && dTasks.length === 0) {
+    box.style.display = 'none'; return;
+  }
+  
+  let html = `<div style="font-weight:700;margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:4px">${dateStr.replace(/-/g,'/')} の記録</div>`;
+  dSessions.forEach(s => {
+    html += `<div style="margin-bottom:8px"><strong>🏢 ${esc(s.gymName)}</strong> <span class="muted">${s.start}〜${s.end} (${s.duration})</span></div>`;
+  });
+  if(dTasks.length > 0) {
+    html += `<ul style="margin:0;padding-left:20px">`;
+    dTasks.forEach(t => {
+      let res = t.result==='flash' ? '⚡' : t.result==='send' ? '○' : '×';
+      html += `<li>[${res}] ${esc(t.shortName)} <span class="muted">(${esc(t.grade)}/${esc(t.wall)})</span></li>`;
+    });
+    html += `</ul>`;
+  }
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
+
+// グラフ描画
+function renderStackedChart(tasks) {
+  const u = getU();
+  let walls = {};
+  
+  // データ集計
+  tasks.forEach(t => {
+    if(!walls[t.wall]) walls[t.wall] = { send: {}, fail: {}, totalS: 0, totalF: 0 };
+    let type = (t.result==='send'||t.result==='flash') ? 'send' : 'fail';
+    walls[t.wall][type][t.grade] = (walls[t.wall][type][t.grade]||0) + 1;
+    if(type==='send') walls[t.wall].totalS++; else walls[t.wall].totalF++;
+  });
+  
+  let maxBar = 1;
+  Object.values(walls).forEach(w => { maxBar = Math.max(maxBar, w.totalS, w.totalF); });
+  
+  let html = '';
+  // 凡例生成 (存在するグレードのみ)
+  let activeGrades = new Set();
+  tasks.forEach(t => activeGrades.add(t.grade));
+  let legendHtml = u.grades.filter(g=>activeGrades.has(g)).map(g => 
+    `<div class="legend-item"><div class="legend-color" style="background:${getGradeColor(g)}"></div>${esc(g)}</div>`
+  ).join('');
+  document.getElementById('chartLegend').innerHTML = legendHtml;
+
+  // バー生成
+  for (let [wName, data] of Object.entries(walls)) {
+    html += `<div class="wall-chart"><div class="wall-title">${esc(wName)}</div>`;
+    // 完登バー
+    html += buildBarRow('完登', data.send, data.totalS, maxBar, u.grades);
+    // 未完バー
+    html += buildBarRow('未完', data.fail, data.totalF, maxBar, u.grades);
+    html += `</div>`;
+  }
+  document.getElementById('chartWall').innerHTML = html || '<div class="muted">データがありません</div>';
+}
+
+function buildBarRow(label, gradeObj, total, maxBar, gradeList) {
+  let pct = maxBar > 0 ? (total / maxBar) * 100 : 0;
+  let segments = gradeList.map(g => {
+    let count = gradeObj[g];
+    if(!count) return '';
+    let wPct = (count / total) * 100;
+    return `<div class="bar-segment" style="width:${wPct}%; background:${getGradeColor(g)}" title="${g}: ${count}本">${count>1?count:''}</div>`;
+  }).join('');
+  
+  return `<div class="bar-row">
+    <div class="bar-label">${label}</div>
+    <div class="bar-track" style="width:${pct}%; min-width:${total>0?'20px':'0'}">${segments}</div>
+    <div class="bar-count ${label==='未完'?'muted':''}">${total}</div>
+  </div>`;
+}
+
+// --- 未完課題の表示 (現在のセットのみ) ---
+document.getElementById('btnShowFails').onclick = () => {
+  const u = getU();
+  // 全ジムの「現在のセット名」をリストアップ
+  let activeSetNames = new Set(u.gyms.map(g => g.currentSet.name));
+  
+  // 未完登 ＆ 現在アクティブなセット名に一致するものだけ抽出
+  let activeFails = u.tasks.filter(t => t.result === 'fail' && activeSetNames.has(t.setName));
+  activeFails.sort((a,b) => b.id - a.id); // 新しい順
+  
+  let box = document.getElementById('failListContent');
+  if(activeFails.length === 0) {
+    box.innerHTML = '<div class="muted" style="text-align:center;padding:20px">現在アクティブなセットに未完課題はありません！🎉</div>';
+  } else {
+    let html = '';
+    activeFails.forEach(t => {
+      html += `<div style="padding:10px; border-bottom:1px solid var(--line); font-size:14px">
+        <div style="font-weight:bold">${esc(t.name)}</div>
+        <div class="muted" style="font-size:12px;margin-top:4px">🏢 ${esc(t.gymName)} / 🧗 ${esc(t.wall)} / 📅 ${t.date}</div>
+      </div>`;
+    });
+    box.innerHTML = html;
+  }
+  document.getElementById('failListModal').showModal();
+};
+
+// --- エクスポート/インポート ---
+document.getElementById('exportData').onclick = () => {
+  let blob = new Blob([JSON.stringify(app, null, 2)], {type:'application/json'});
+  let a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `climbing_log_v3_${new Date().toISOString().slice(0,10)}.json`; a.click();
+};
+document.getElementById('importData').onchange = (e) => {
+  let file = e.target.files[0]; if(!file) return;
+  let reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      let imp = JSON.parse(evt.target.result);
+      if(imp.users) { app = imp; save(); init(); alert('復元完了しました！'); }
+    }catch(err){ alert('読み込みに失敗しました'); }
+  };
+  reader.readAsText(file);
+};
+
+// 初回実行
+init();
+</script>
+</body>
+</html>
