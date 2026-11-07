@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climbing Log</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; }
+        .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+<div class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col relative">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 flex justify-between items-center shadow-md">
+        <h1 class="text-xl font-bold">Climbing Log</h1>
+        <div id="status-badge" class="text-xs bg-gray-400 px-2 py-1 rounded-full">未チェックイン</div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 overflow-y-auto mb-16">
+        
+        <!-- === 記録タブ === -->
+        <div id="tab-record" class="tab-content">
+            <h2 class="text-lg font-bold mb-4 border-b pb-2">記録 (チェックイン/セッション)</h2>
+            
+            <div id="checkin-area" class="bg-gray-50 p-4 rounded-lg border mb-4">
+                <label class="block text-sm text-gray-600 mb-1">ジム</label>
+                <select id="record-gym-select" class="w-full border rounded p-2 mb-3"></select>
+                
+                <label class="block text-sm text-gray-600 mb-1">開始時間 (空欄で現在時刻)</label>
+                <input type="datetime-local" id="record-start-time" class="w-full border rounded p-2 mb-3">
+                
+                <button onclick="handleCheckIn()" class="w-full bg-blue-500 text-white py-2 rounded-lg font-bold shadow hover:bg-blue-600 transition">
+                    チェックイン
+                </button>
+                <button onclick="showPastSessionForm()" class="w-full mt-2 bg-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-300 transition">
+                    + 過去のセッションを登録
+                </button>
+            </div>
+
+            <div id="active-session-area" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">
+                    <p class="text-sm font-bold text-blue-700 mb-2">チェックイン中: <span id="active-gym-name"></span></p>
+                    
+                    <!-- 2ステップ入力 -->
+                    <div class="bg-white p-3 rounded shadow-sm">
+                        <p class="text-xs text-gray-500 mb-2">ステップ 1/2</p>
+                        <select id="log-grade" class="w-full border rounded p-2 mb-2 text-sm"><option>グレードを選択...</option></select>
+                        <select id="log-wall" class="w-full border rounded p-2 mb-2 text-sm">
+                            <option value="スラブ">スラブ</option>
+                            <option value="垂壁">垂壁</option>
+                            <option value="強傾斜">強傾斜</option>
+                            <option value="ルーフ">ルーフ</option>
+                        </select>
+                        
+                        <p class="text-xs text-gray-500 mt-2 mb-1">ステップ 2/2</p>
+                        <input type="text" id="log-name" placeholder="課題名・メモ" class="w-full border rounded p-2 mb-2 text-sm">
+                        <div class="flex gap-2 mb-2">
+                            <button onclick="saveLog('完登')" class="flex-1 bg-green-500 text-white py-2 rounded font-bold hover:bg-green-600">完登 (完)</button>
+                            <button onclick="saveLog('未完')" class="flex-1 bg-yellow-500 text-white py-2 rounded font-bold hover:bg-yellow-600">未完 (宿題)</button>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <label class="block text-sm text-gray-600 mb-1">終了時間 (空欄で現在時刻)</label>
+                    <input type="datetime-local" id="record-end-time" class="w-full border rounded p-2 mb-2 text-sm">
+                    <button onclick="handleCheckOut()" class="w-full bg-red-500 text-white py-2 rounded-lg font-bold shadow hover:bg-red-600 transition">
+                        チェックアウト
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === 分析タブ === -->
+        <div id="tab-analysis" class="tab-content hidden">
+            <h2 class="text-lg font-bold mb-4 border-b pb-2">分析・成果</h2>
+            
+            <div class="flex border-b mb-4">
+                <button onclick="switchAnalysisTab('monthly')" id="btn-analysis-monthly" class="flex-1 py-2 text-sm text-center border-b-2 border-blue-500 font-bold text-blue-600">月別</button>
+                <button onclick="switchAnalysisTab('total')" id="btn-analysis-total" class="flex-1 py-2 text-sm text-center text-gray-500">総計</button>
+                <button onclick="switchAnalysisTab('current')" id="btn-analysis-current" class="flex-1 py-2 text-sm text-center text-gray-500">現在のセット</button>
+            </div>
+
+            <!-- 月別 -->
+            <div id="analysis-monthly" class="">
+                <input type="month" id="analysis-month-picker" class="w-full border p-2 rounded mb-4">
+                
+                <div class="bg-gray-50 p-3 rounded-lg border mb-4 text-center">
+                    <p class="text-xs text-gray-500">月間サマリー</p>
+                    <div class="flex justify-around mt-2">
+                        <div><span class="block text-xl font-bold" id="monthly-days">0</span><span class="text-xs">日数</span></div>
+                        <div><span class="block text-xl font-bold" id="monthly-hours">0h</span><span class="text-xs">時間</span></div>
+                        <div><span class="block text-xl font-bold text-green-600" id="monthly-climbs">0</span><span class="text-xs">完登数</span></div>
+                    </div>
+                </div>
+                
+                <h3 class="text-sm font-bold mb-2">カレンダー</h3>
+                <div class="grid grid-cols-7 gap-1 text-center text-xs mb-4" id="calendar-grid">
+                    <!-- カレンダー自動生成 -->
+                </div>
+                
+                <h3 class="text-sm font-bold mb-2 mt-4">グレード別 完登/未完 (壁別)</h3>
+                <canvas id="monthlyChart" height="250"></canvas>
+            </div>
+
+            <!-- 総計 -->
+            <div id="analysis-total" class="hidden">
+                <div class="bg-gray-50 p-3 rounded-lg border mb-4 text-center">
+                    <p class="text-xs text-gray-500">全期間 完登サマリー</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1" id="total-climbs">0</p>
+                    <div id="total-gym-breakdown" class="text-xs text-gray-600 mt-2 flex flex-wrap justify-center gap-2"></div>
+                </div>
+                <h3 class="text-sm font-bold mb-2">月別 完登推移</h3>
+                <canvas id="totalClimbsChart" height="200"></canvas>
+                <h3 class="text-sm font-bold mb-2 mt-4">月別 登攀日数・時間</h3>
+                <canvas id="totalTimeChart" height="200"></canvas>
+            </div>
+
+            <!-- 現在のセット -->
+            <div id="analysis-current" class="hidden">
+                <select id="analysis-current-gym" class="w-full border p-2 rounded mb-4 bg-gray-50"></select>
+                
+                <div class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-4">
+                    <h3 class="text-sm font-bold text-yellow-800 mb-2">宿題 (未完課題)</h3>
+                    <ul id="homework-list" class="text-sm space-y-2">
+                        <!-- 宿題リスト生成 -->
+                    </ul>
+                </div>
+
+                <h3 class="text-sm font-bold mb-2">セット内 成果</h3>
+                <canvas id="currentChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- === 設定タブ === -->
+        <div id="tab-settings" class="tab-content hidden">
+            <h2 class="text-lg font-bold mb-4 border-b pb-2">設定・管理</h2>
+            
+            <div class="mb-6">
+                <h3 class="text-sm font-bold bg-gray-200 p-2 rounded mb-2">ユーザー (アカウント)</h3>
+                <input type="text" id="new-user-name" placeholder="新しいユーザー名" class="border p-2 rounded w-2/3 text-sm">
+                <button class="bg-gray-800 text-white px-3 py-2 rounded text-sm font-bold ml-1">追加</button>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="text-sm font-bold bg-gray-200 p-2 rounded mb-2">ジムとセット管理</h3>
+                <div class="bg-gray-50 p-3 border rounded text-sm">
+                    <p class="mb-2">新規ジム追加</p>
+                    <input type="text" placeholder="ジム名" class="border p-2 w-full mb-2 rounded">
+                    <button class="bg-blue-500 text-white px-3 py-1 rounded w-full font-bold">ジムを登録</button>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="text-sm font-bold bg-gray-200 p-2 rounded mb-2">データ管理</h3>
+                <div class="flex gap-2">
+                    <button class="flex-1 bg-blue-50 text-blue-700 border border-blue-200 p-2 rounded text-sm font-bold">出力(Export)</button>
+                    <button class="flex-1 bg-green-50 text-green-700 border border-green-200 p-2 rounded text-sm font-bold">取込(Import)</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="absolute bottom-0 w-full bg-white border-t flex justify-around p-3 text-sm text-gray-500">
+        <div onclick="switchTab('record')" class="tab-btn active cursor-pointer flex-1 text-center py-2" id="nav-record">記録</div>
+        <div onclick="switchTab('analysis')" class="tab-btn cursor-pointer flex-1 text-center py-2" id="nav-analysis">分析</div>
+        <div onclick="switchTab('settings')" class="tab-btn cursor-pointer flex-1 text-center py-2" id="nav-settings">設定</div>
+    </nav>
+</div>
+
+<script>
+    /* =========================================
+       データ移行と初期化
+       ========================================= */
+    function initializeData() {
+        // v5データがない場合、v2やv3から自動移行
+        if (!localStorage.getItem('climbing-log-v5')) {
+            const oldData = localStorage.getItem('climbing_log_v3') || localStorage.getItem('climbing_log_v2');
+            if (oldData) {
+                localStorage.setItem('climbing-log-v5', oldData);
+                console.log("旧バージョンのデータ(v2/v3)を v5 に引き継ぎました！");
+            } else {
+                // 初回起動用の空データ
+                const initData = {
+                    users: ["User1"],
+                    gyms: [{ name: "B-PUMP TOKYO", sets: [] }],
+                    grades: ["初段", "1級", "2級", "3級", "4級", "5級", "6級"],
+                    logs: []
+                };
+                localStorage.setItem('climbing-log-v5', JSON.stringify(initData));
+            }
+        }
+    }
+    initializeData();
+
+    /* =========================================
+       UI制御 (タブ切り替え)
+       ========================================= */
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active', 'text-blue-500'));
+        
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+        document.getElementById('nav-' + tabId).classList.add('active', 'text-blue-500');
+    }
+
+    function switchAnalysisTab(subTabId) {
+        document.getElementById('analysis-monthly').classList.add('hidden');
+        document.getElementById('analysis-total').classList.add('hidden');
+        document.getElementById('analysis-current').classList.add('hidden');
+        
+        document.getElementById('btn-analysis-monthly').className = "flex-1 py-2 text-sm text-center text-gray-500";
+        document.getElementById('btn-analysis-total').className = "flex-1 py-2 text-sm text-center text-gray-500";
+        document.getElementById('btn-analysis-current').className = "flex-1 py-2 text-sm text-center text-gray-500";
+        
+        document.getElementById('analysis-' + subTabId).classList.remove('hidden');
+        document.getElementById('btn-analysis-' + subTabId).className = "flex-1 py-2 text-sm text-center border-b-2 border-blue-500 font-bold text-blue-600";
+    }
+
+    /* =========================================
+       ダミーの記録・チェックイン機能（UI動作用）
+       ========================================= */
+    let isCheckedIn = false;
+    
+    function handleCheckIn() {
+        document.getElementById('checkin-area').classList.add('hidden');
+        document.getElementById('active-session-area').classList.remove('hidden');
+        document.getElementById('status-badge').innerText = "チェックイン中";
+        document.getElementById('status-badge').classList.replace('bg-gray-400', 'bg-blue-500');
+        document.getElementById('active-gym-name').innerText = "B-PUMP TOKYO";
+    }
+
+    function handleCheckOut() {
+        document.getElementById('active-session-area').classList.add('hidden');
+        document.getElementById('checkin-area').classList.remove('hidden');
+        document.getElementById('status-badge').innerText = "未チェックイン";
+        document.getElementById('status-badge').classList.replace('bg-blue-500', 'bg-gray-400');
+        alert("セッションを保存しました！");
+    }
+
+    function saveLog(status) {
+        let name = document.getElementById('log-name').value;
+        if(!name) name = "名無し課題";
+        alert(status + " として記録しました: " + name);
+        document.getElementById('log-name').value = '';
+    }
+
+    function showPastSessionForm() {
+        alert("過去セッション追加画面を開きます (実装略)");
+    }
+</script>
+</body>
+</html>
