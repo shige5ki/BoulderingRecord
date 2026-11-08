@@ -724,14 +724,14 @@
     /* =========================================
        データインポート・エクスポート (安全設計)
        ========================================= */
-    function sanitizeImportData(data) {
+   function sanitizeImportData(data) {
     let clean = { gyms: [], logs: [] };
     let rawLogs = [];
     let rawGyms = [];
 
     if (!data) return clean;
 
-    // パターン1: 旧v5/マルチユーザー構造 (data.Default User や data[currentUser])
+    // 旧v5構造 (data.Default User や data[currentUser]) の自動解析
     if (data.data) {
         let userKey = data.currentUser || Object.keys(data.data)[0];
         if (userKey && data.data[userKey]) {
@@ -740,7 +740,7 @@
             if (Array.isArray(userData.gyms)) rawGyms = userData.gyms;
         }
     } 
-    // パターン2: ルート直下の配列またはオブジェクト構造
+    // 標準配列・単一オブジェクト構造の解析
     else if (Array.isArray(data)) {
         rawLogs = data;
     } else if (typeof data === 'object') {
@@ -749,13 +749,12 @@
         if (Array.isArray(data.gyms)) rawGyms = data.gyms;
     }
 
-    // ジムデータの整形
+    // ジムデータの補正
     clean.gyms = rawGyms.map(g => ({
         name: g.name || "不明なジム",
         sets: Array.isArray(g.sets) ? g.sets : []
     }));
     
-    // ジムが空ならデフォルトジムを追加
     if (clean.gyms.length === 0) {
         clean.gyms = [
             { name: "ノボロック渋谷", sets: [{ id: "set_shibuya", name: "渋谷261027", start: "2026-10-27", end: "2026-11-23" }] },
@@ -763,15 +762,13 @@
         ];
     }
 
-    // ログ（課題）データの整形と表記ゆれ自動補正
+    // ログデータの補正（英単語のステータスや壁の種類を自動変換）
     clean.logs = rawLogs.map((l, index) => {
-        // 結果 (result / status) の変換 (flash -> 一撃, send -> 完登, unfinished -> 未完)
         let status = l.status || "完登";
         if (l.result === "flash") status = "一撃";
         else if (l.result === "send") status = "完登";
         else if (l.result === "unfinished") status = "未完";
 
-        // 壁の種類の変換 ("垂壁 (Vertical)" -> "垂壁" など)
         let wall = l.wall || "スラブ";
         if (wall.includes("スラブ")) wall = "スラブ";
         else if (wall.includes("垂壁")) wall = "垂壁";
