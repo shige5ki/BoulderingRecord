@@ -725,25 +725,76 @@
        データインポート・エクスポート (安全設計)
        ========================================= */
     function sanitizeImportData(data) {
-        // 安全にフィールドを補完
-        let clean = { gyms: [], logs: [] };
-        if(data && Array.isArray(data.gyms)) clean.gyms = data.gyms;
-        if(data && Array.isArray(data.logs)) {
-            clean.logs = data.logs.map(l => ({
-                id: l.id || Date.now().toString() + Math.floor(Math.random()*1000),
-                date: l.date || new Date().toLocaleDateString('sv-SE'),
-                gym: l.gym || "不明なジム",
-                set: l.set || "デフォルトセット",
-                grade: l.grade || "6級",
-                wall: l.wall || "不明",
-                name: l.name || "無名課題",
-                memo: l.memo || "",
-                status: l.status || "完登",
-                timestamp: l.timestamp || new Date().toISOString()
-            }));
+    let clean = { gyms: [], logs: [] };
+    let rawLogs = [];
+    let rawGyms = [];
+
+    if (!data) return clean;
+
+    // パターン1: 旧v5/マルチユーザー構造 (data.Default User や data[currentUser])
+    if (data.data) {
+        let userKey = data.currentUser || Object.keys(data.data)[0];
+        if (userKey && data.data[userKey]) {
+            let userData = data.data[userKey];
+            if (Array.isArray(userData.tasks)) rawLogs = userData.tasks;
+            if (Array.isArray(userData.gyms)) rawGyms = userData.gyms;
         }
-        return clean;
+    } 
+    // パターン2: ルート直下の配列またはオブジェクト構造
+    else if (Array.isArray(data)) {
+        rawLogs = data;
+    } else if (typeof data === 'object') {
+        if (Array.isArray(data.logs)) rawLogs = data.logs;
+        else if (Array.isArray(data.tasks)) rawLogs = data.tasks;
+        if (Array.isArray(data.gyms)) rawGyms = data.gyms;
     }
+
+    // ジムデータの整形
+    clean.gyms = rawGyms.map(g => ({
+        name: g.name || "不明なジム",
+        sets: Array.isArray(g.sets) ? g.sets : []
+    }));
+    
+    // ジムが空ならデフォルトジムを追加
+    if (clean.gyms.length === 0) {
+        clean.gyms = [
+            { name: "ノボロック渋谷", sets: [{ id: "set_shibuya", name: "渋谷261027", start: "2026-10-27", end: "2026-11-23" }] },
+            { name: "ノボロック町田", sets: [{ id: "set_machida", name: "町田261020", start: "2026-10-20", end: "2026-11-15" }] }
+        ];
+    }
+
+    // ログ（課題）データの整形と表記ゆれ自動補正
+    clean.logs = rawLogs.map((l, index) => {
+        // 結果 (result / status) の変換 (flash -> 一撃, send -> 完登, unfinished -> 未完)
+        let status = l.status || "完登";
+        if (l.result === "flash") status = "一撃";
+        else if (l.result === "send") status = "完登";
+        else if (l.result === "unfinished") status = "未完";
+
+        // 壁の種類の変換 ("垂壁 (Vertical)" -> "垂壁" など)
+        let wall = l.wall || "スラブ";
+        if (wall.includes("スラブ")) wall = "スラブ";
+        else if (wall.includes("垂壁")) wall = "垂壁";
+        else if (wall.includes("強傾斜") || wall.includes("薄かぶり")) wall = "強傾斜";
+        else if (wall.includes("ルーフ")) wall = "ルーフ";
+        else wall = "スラブ";
+
+        return {
+            id: (l.id || Date.now() + index).toString(),
+            date: l.date || new Date().toLocaleDateString('sv-SE'),
+            gym: l.gymName || l.gym || "ノボロック渋谷",
+            set: l.setName || l.set || "デフォルトセット",
+            grade: l.grade || "6級",
+            wall: wall,
+            name: l.rawName || l.name || "無名課題",
+            memo: l.memo || "",
+            status: status,
+            timestamp: l.timestamp || new Date().toISOString()
+        };
+    });
+
+    return clean;
+}
 
     function exportData() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
